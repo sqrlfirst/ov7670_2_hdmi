@@ -17,8 +17,7 @@ module camera_top
            output           odone
         );
 
-    ov_7670_capture 
-        (
+    ov_7670_capture (
            .pclk            (ipclk),
            .vsync           (ivsync),
            .href            (ihref),
@@ -26,7 +25,7 @@ module camera_top
            .addr            (oaddr),
            .data_out        (odata_out),
            .write_en        (owr_en),
-        );
+    );
 
     ov_7670_init
         (

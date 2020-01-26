@@ -69,7 +69,7 @@ module top_module(
 	);
 
     // OV7670
-    
+
 
 
 

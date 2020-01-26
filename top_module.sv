@@ -41,10 +41,17 @@ module top_module(
                                                     // line 0   1   2   3
 
     // camera interface OV7670
-    input [7:0]                 icam_data,          // GPIO pins 18..25
-                                                    // pin   
-                                                    // 
-
+    input [7:0]                 icam_data,          // GPIO pins 16..23
+                                                    // pin  ad6     ad7     aa6     aa7     y8      g26     y9      f26    
+                                                    //      D0(23)  D1(22)  D2(21)  D3(20)  D4(19)  D5(18)  D6(17)  D7(16) 
+    output                      ocam_sioc ,         // GPIO10 pin u19 
+    inout                       iocam_siod,         // GPIO11 pin u22
+    input                       icam_vsync,         // GPIO12 pin p8
+    input                       icam_href ,         // GPIO13 pin r8
+    input                       icam_pclk ,         // GPIO14 pin r9
+    output                      ocam_xclk ,         // GPIO15 pin r10
+    output                      ocam_rst  ,         // GPIO24 pin u20
+    output                      ocam_pwdn           // GPIO25 pin v22
 
 );
 
@@ -53,15 +60,16 @@ module top_module(
     // c1   100  Mhz
     // c2   150  Mhz
     pll_24Mhz (
-		.refclk             ( ),   //  refclk.clk
-		.rst                ( ),      //   reset.reset
-		.outclk_0           ( ), // outclk0.clk
-		.outclk_1           ( ), // outclk1.clk
-		.outclk_2           ( ), // outclk2.clk
-		.locked             ( ) //  locked.export
+		.refclk             ( ),   
+		.rst                ( ),   
+		.outclk_0           ( ), 
+		.outclk_1           ( ), 
+		.outclk_2           ( ),
+		.locked             ( ) 
 	);
 
-
+    // OV7670
+    
 
 
 

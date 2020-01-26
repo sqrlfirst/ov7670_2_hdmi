@@ -15,6 +15,13 @@ module top_module(
     output                      osi5338_i2c_scl,    // PIN b7
     inout                       iosi5338_i2c_sda,   // PIN g11
 
+    // OV7670 - camera
+
+    input                       ipclk,
+    input                       ivsync,
+    input                       ihref,
+    input [7:0]                 idata,
+
     // HDMI PHY interface ADV7513
     output [23:0]               ohdmi_tx_d   ;      // PIN  v23  aa26 w25  w26  v24  v25  u24  t23  t24  t26  r23   r25
                                                     // line 0    1    2    3    4    5    6    7    8    9    10    11                

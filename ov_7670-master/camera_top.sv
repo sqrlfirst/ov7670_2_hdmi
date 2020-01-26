@@ -7,7 +7,7 @@ module camera_top
            input                iclk,
            input                iclk_sccb,
            input                ireset,
-           input                isio_d,
+           inout                isio_d,
            input                istart,
            output               owr_en,
            output [18:0]        oaddr,

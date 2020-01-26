@@ -1,20 +1,20 @@
 module camera_top 
         (
-           input            ipclk,
-           input            ivsync,
-           input            ihref,
-           input            idata,
-           input            iclk,
-           input            iclk_sccb,
-           input            ireset,
-           input            isio_d,
-           input            istart,
-           output           owr_en,
-           output           oaddr,
-           output           odata_out,
-           output           opwdn,
-           output           osio_c,
-           output           odone
+           input                ipclk,
+           input                ivsync,
+           input                ihref,
+           input [7:0]          idata,
+           input                iclk,
+           input                iclk_sccb,
+           input                ireset,
+           input                isio_d,
+           input                istart,
+           output               owr_en,
+           output [18:0]        oaddr,
+           output [23:0]        odata_out,
+           output               opwdn,
+           output               osio_c,
+           output               odone
         );
 
     ov_7670_capture 
@@ -39,5 +39,7 @@ module camera_top
             .start          (istart),
             .done           (odone)
         );
+
+    
 
 endmodule

@@ -15,13 +15,6 @@ module top_module(
     output                      osi5338_i2c_scl,    // PIN b7
     inout                       iosi5338_i2c_sda,   // PIN g11
 
-    // OV7670 - camera
-
-    input                       ipclk,
-    input                       ivsync,
-    input                       ihref,
-    input [7:0]                 idata,
-
     // HDMI PHY interface ADV7513
     output [23:0]               ohdmi_tx_d   ,      // PIN  v23  aa26 w25  w26  v24  v25  u24  t23  t24  t26  r23   r25
                                                     // line 0    1    2    3    4    5    6    7    8    9    10    11                
@@ -47,27 +40,67 @@ module top_module(
     output                      ocam_sioc ,         // GPIO10 pin u19 
     inout                       iocam_siod,         // GPIO11 pin u22
     input                       icam_vsync,         // GPIO12 pin p8
-    input                       icam_href ,         // GPIO13 pin r8
-    input                       icam_pclk ,         // GPIO14 pin r9
-    output                      ocam_xclk ,         // GPIO15 pin r10
-    output                      ocam_rst  ,         // GPIO24 pin u20
+    input                       icam_href ,         // GPIO1camera_top  3 pin r8
+    input                       icam_pclk ,         // GPIO14 pin r9                           
+    output                      ocam_xclk ,         // GPIO15 pin r10               system clock output = 24 MHz - goes to camera
+    output                      ocam_rst  ,         // GPIO24 pin u20               // not used
     output                      ocam_pwdn           // GPIO25 pin v22
 
 );
+
+
+    // OV7670
+
+wire                            w100MHz;
+wire                            w150MHz;
+wire [18:0]                     waddr;
+wire [23:0]                     wdata_out;
+wire                            wwr_en;
+
+reg [7:0]                       r_counter = '0;
+reg                             r400KHz;        // maybe 400 is required?
+
+wire                            wpwdn;
+wire                            wsio_c;
+wire                            wsio_d;
+wire                            wdone;
+wire                            wstart;
+reg                             rreset = 1'b0;
+reg                             rstart = 1'b1;
+
+
+ camera_top(
+    	.ipclk              (icam_pclk        ),        // Camera frequency 24MHz
+        .ivsync             (icam_vsync    ),
+        .ihref              (icam_href     ),
+        .idata              (icam_data     ),
+        .iclk               (w150MHz       ),           // Not sure
+        .iclk_sccb          (r100KHz ),                 // Clock for SCCB protocol (100kHz to 400kHz)
+        .ireset             (rreset        ),           // Async reset signal - should be described in top_module  
+        .isio_d             (iocam_siod    ),
+        .istart             (rstart    ),
+        .owr_en             (wwr_en    ),
+        .oaddr              (waddr     ),
+        .odata_out          (wdata_out ),
+        .opwdn              (ocam_pwdn     ),
+        .osio_c             (ocam_sioc    ),
+        .odone              (wdone     )            // Means, that camera initialization is done
+    );
 
     // pll 
     // c0   24   Mhz 
     // c1   100  Mhz
     // c2   150  Mhz
-    pll_24Mhz (
-		.refclk             ( ),   
+    pll_24Mhz (                         
+		.refclk             ( ipclk),          
 		.rst                ( ),   
-		.outclk_0           ( ), 
-		.outclk_1           ( ), 
-		.outclk_2           ( ),
+		.outclk_0           (ocam_xclk ), 
+		.outclk_1           (w100MHz), 
+		.outclk_2           (w150MHz),
 		.locked             ( ) 
 	);
 
+<<<<<<< HEAD
     // OV7670
 
     camera_top u_camera_top(
@@ -91,5 +124,19 @@ module top_module(
     
 
 
+=======
+always @(posedge w100MHz)
+begin
+    if (r_counter == 8'd249) begin
+        r_counter <= 8'd0;
+        r100KHz <= 1'b1;
+    end
+    else 
+    begin 
+        r_counter <= r_counter + 1'b1;
+        r100KHz <= 1'b0;
+    end
+end
+>>>>>>> e8600b98e37a4372ae8490f8df5342999d78040b
 
 endmodule 

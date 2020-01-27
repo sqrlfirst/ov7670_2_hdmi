@@ -70,6 +70,25 @@ module top_module(
 
     // OV7670
 
+    camera_top u_camera_top(
+    	.ipclk          (  ),
+        .ivsync         (  ),
+        .ihref          (  ),
+        .idata          (  ),
+        .iclk           (  ),
+        .iclk_sccb      (  ),
+        .ireset         (  ),
+        .isio_d         (  ),
+        .istart         (  ),
+        .owr_en         (  ),
+        .oaddr          (  ),
+        .odata_out      (  ),
+        .opwdn          (  ),
+        .osio_c         (  ),
+        .odone          (  )
+    );
+    
+    
 
 
 

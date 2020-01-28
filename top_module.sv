@@ -43,7 +43,7 @@ module top_module(
     input                       icam_href ,         // GPIO1camera_top  3 pin r8
     input                       icam_pclk ,         // GPIO14 pin r9                           
     output                      ocam_xclk ,         // GPIO15 pin r10               system clock output = 24 MHz - goes to camera
-    output                      ocam_rst  ,         // GPIO24 pin u20               // not used
+    output                      ocam_rst  ,         // GPIO24 pin u20               NOT USED
     output                      ocam_pwdn           // GPIO25 pin v22
 
 );
@@ -100,31 +100,6 @@ reg                             rstart = 1'b1;
 		.locked             ( ) 
 	);
 
-<<<<<<< HEAD
-    // OV7670
-
-    camera_top u_camera_top(
-    	.ipclk          (  ),
-        .ivsync         (  ),
-        .ihref          (  ),
-        .idata          (  ),
-        .iclk           (  ),
-        .iclk_sccb      (  ),
-        .ireset         (  ),
-        .isio_d         (  ),
-        .istart         (  ),
-        .owr_en         (  ),
-        .oaddr          (  ),
-        .odata_out      (  ),
-        .opwdn          (  ),
-        .osio_c         (  ),
-        .odone          (  )
-    );
-    
-    
-
-
-=======
 always @(posedge w100MHz)
 begin
     if (r_counter == 8'd249) begin
@@ -137,6 +112,5 @@ begin
         r100KHz <= 1'b0;
     end
 end
->>>>>>> e8600b98e37a4372ae8490f8df5342999d78040b
 
 endmodule 

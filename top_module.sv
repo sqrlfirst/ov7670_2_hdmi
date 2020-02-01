@@ -7,10 +7,10 @@ module top_module(
     input                       iclk_50M_b7a,       // PIN h12  2.5v
     input                       iclk_50M_b8a,       // PIN m10  2.5v
     // 
-    input                       iclk_ref_clkp0,     // PIN v6
-    input                       iclk_ref_clkn0,     // PIN w6
-    input                       iclk_ref_clkp1,     // PIN n7
-    input                       iclk_ref_clkn1,     // PIN p6
+    // input                       iclk_ref_clkp0,     // PIN v6
+    // input                       iclk_ref_clkn0,     // PIN w6
+    // input                       iclk_ref_clkp1,     // PIN n7
+    // input                       iclk_ref_clkn1,     // PIN p6
     // SI5338 control
     output                      osi5338_i2c_scl,    // PIN b7
     inout                       iosi5338_i2c_sda,   // PIN g11
@@ -34,57 +34,58 @@ module top_module(
                                                     // line 0   1   2   3
 
     // camera interface OV7670
-    input [7:0]                 icam_data,          // GPIO pins 16..23
-                                                    // pin  ad6     ad7     aa6     aa7     y8      g26     y9      f26    
-                                                    //      D0(23)  D1(22)  D2(21)  D3(20)  D4(19)  D5(18)  D6(17)  D7(16) 
-    output                      ocam_sioc ,         // GPIO10 pin u19 
-    inout                       iocam_siod,         // GPIO11 pin u22
-    input                       icam_vsync,         // GPIO12 pin p8
-    input                       icam_href ,         // GPIO1camera_top  3 pin r8
-    input                       icam_pclk ,         // GPIO14 pin r9                           
-    output                      ocam_xclk ,         // GPIO15 pin r10               system clock output = 24 MHz - goes to camera
-    output                      ocam_rst  ,         // GPIO24 pin u20               NOT USED
-    output                      ocam_pwdn           // GPIO25 pin v22
+    input [7:0]                 icam_data,          // GPIO pins 2..9
+                                                    // pin  E26     K25     M26     K26     P20     M21     T19     T22
+                                                    //      D0(3)   D1(2)   D2(5)   D3(4)   D4(7)   D5(6)   D6(9)   D7(8) 
+    output                      ocam_sioc ,         // GPIO16 pin F26 
+    inout                       iocam_siod,         // GPIO17 pin Y9
+    input                       icam_vsync,         // GPIO14 pin R9
+    input                       icam_href ,         // GPIO15 pin R10
+    input                       icam_pclk ,         // GPIO12 pin P8                           
+    output                      ocam_xclk ,         // GPIO13 pin R8               system clock output = 24 MHz - goes to camera
+    output                      ocam_rst  ,         // GPIO0  pin T21
+    output                      ocam_pwdn           // GPIO1  pin D26 
 
 );
 
 
     // OV7670
 
-wire                            w100MHz;
-wire                            w150MHz;
-wire [18:0]                     waddr;
-wire [23:0]                     wdata_out;
-wire                            wwr_en;
+logic                            w100MHz;
+logic                            w150MHz;
+logic [18:0]                     waddr;
+logic [23:0]                     wdata_out;
+logic                            wwr_en;
 
-reg [7:0]                       r_counter = '0;
-reg                             r400KHz;        // maybe 400 is required?
+logic [7:0]                       r_counter = '0;
+logic                             r400KHz;        // maybe 400 is required?
 
-wire                            wpwdn;
-wire                            wsio_c;
-wire                            wsio_d;
-wire                            wdone;
-wire                            wstart;
-reg                             rreset = 1'b0;
-reg                             rstart = 1'b1;
+logic                            wpwdn;
+logic                            wsio_c;
+logic                            wsio_d;
+logic                            wdone;
+logic                            wstart;
+logic                             rreset = 1'b1;
+logic                             rstart = 1'b0;
 
 
- camera_top(
-    	.ipclk              (icam_pclk        ),        // Camera frequency 24MHz
-        .ivsync             (icam_vsync    ),
-        .ihref              (icam_href     ),
-        .idata              (icam_data     ),
-        .iclk               (w150MHz       ),           // Not sure
-        .iclk_sccb          (r100KHz ),                 // Clock for SCCB protocol (100kHz to 400kHz)
-        .ireset             (rreset        ),           // Async reset signal - should be described in top_module  
-        .isio_d             (iocam_siod    ),
-        .istart             (rstart    ),
-        .owr_en             (wwr_en    ),
-        .oaddr              (waddr     ),
-        .odata_out          (wdata_out ),
-        .opwdn              (ocam_pwdn     ),
-        .osio_c             (ocam_sioc    ),
-        .odone              (wdone     )            // Means, that camera initialization is done
+    camera_top(
+    	.ipclk              ( icam_pclk     ),        // Camera frequency 24MHz
+        .ivsync             ( icam_vsync    ),
+        .ihref              ( icam_href     ),
+        .idata              ( icam_data     ),
+        .iclk_100M          ( w100MHz       ),           // Not sure
+        // .iclk_sccb          (        ),                 // Clock for SCCB protocol (100kHz to 400kHz)
+        .ireset             ( rreset        ),           // Async reset signal - should be described in top_module  
+        .isio_d             ( iocam_siod    ),
+        .osio_c             ( ocam_sioc     ),
+
+        .istart             ( rstart        ),
+        .owr_en             ( wwr_en        ),
+        .oaddr              ( waddr         ),
+        .odata_out          ( wdata_out     ),
+        .opwdn              ( ocam_pwdn     ),
+        .odone              ( wdone         )            // Means, that camera initialization is done
     );
 
     // pll 
@@ -92,25 +93,13 @@ reg                             rstart = 1'b1;
     // c1   100  Mhz
     // c2   150  Mhz
     pll_24Mhz (                         
-		.refclk             ( ipclk),          
-		.rst                ( ),   
-		.outclk_0           (ocam_xclk ), 
-		.outclk_1           (w100MHz), 
-		.outclk_2           (w150MHz),
-		.locked             ( ) 
+		.refclk             ( iclk_50M_b5b ),          
+		.rst                (  ),   
+		.outclk_0           ( ocam_xclk    ), 
+		.outclk_1           ( w100MHz      ), 
+		.outclk_2           ( w150MHz      ),
+		.locked             (              ) 
 	);
 
-always @(posedge w100MHz)
-begin
-    if (r_counter == 8'd249) begin
-        r_counter <= 8'd0;
-        r100KHz <= 1'b1;
-    end
-    else 
-    begin 
-        r_counter <= r_counter + 1'b1;
-        r100KHz <= 1'b0;
-    end
-end
 
 endmodule 

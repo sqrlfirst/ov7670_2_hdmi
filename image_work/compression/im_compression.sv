@@ -32,7 +32,7 @@ module im_compression #(
     localparam  lpOUT_BYTES_NUM    = pOUT_IM_HEIGHT * pOUT_IM_WIDTH;
     localparam  lpC2_OUT_BYTES_NUM = $clog2(lpOUT_BYTES_NUM)       ;
 
-     localparam lpWAIT = 3'b000,
+     localparam lpWAIT = 3'b000,                                // 
                 lpREAD = 3'b001,
                 lpSUM_8 = 3'b010,
                 lpSUM_4  = 3'b011,
@@ -52,7 +52,7 @@ module im_compression #(
     logic [3:0][pIN_DATA_W:0]           r_mean_4; 
     logic [1:0][pIN_DATA_W:0]           r_mean_2;              
 
-     always @* begin
+     always_comb begin
             case(r_state_reg)
                 lpWAIT:     	        r_state_next <= lpREAD;
                 lpREAD:     	        r_state_next <= lpSUM_8;
@@ -183,21 +183,17 @@ module im_compression #(
                             end
                         end
             (lpSUM_8): begin
-                        r_mean_8 [0] <= 1>>(r_mem_work [0] [0] + r_mem_work [0] [1]) ;
-                        r_mean_8 [1] <= 1>>(r_mem_work [0] [2] + r_mem_work [0] [3]) ;
-                        r_mean_8 [2] <= 1>>(r_mem_work [1] [0] + r_mem_work [1] [1]) ;
-                        r_mean_8 [3] <= 1>>(r_mem_work [1] [2] + r_mem_work [1] [3]) ;
-                        r_mean_8 [4] <= 1>>(r_mem_work [2] [0] + r_mem_work [2] [1]) ;
-                        r_mean_8 [5] <= 1>>(r_mem_work [2] [2] + r_mem_work [2] [3]) ;
-                        r_mean_8 [6] <= 1>>(r_mem_work [3] [0] + r_mem_work [3] [1]);
-                        r_mean_8 [7] <= 1>>(r_mem_work [3] [2] + r_mem_work [3] [3]);
+                        for ( int i = 0; i < 8; i++ ) begin
+                            for ( int j = 0; j < 4; j+2 ) begin
+                                r_mean_8 [i] <= 1>>(r_mem_work [i] [j] + r_mem_work [i] [j+1]);   // CHECK YA MOG PROEBATSYA
+                            end
+                        end
                         r_state_reg <= r_state_next;
             end
             (lpSUM_4): begin
-                        r_mean_4 [0] <= 1>>(r_mean_8 [0] + r_mean_8 [1]) ;
-                        r_mean_4 [1] <= 1>>(r_mean_8 [2] + r_mean_8 [3]) ;
-                        r_mean_4 [2] <= 1>>(r_mean_8 [4] + r_mean_8 [5]) ;
-                        r_mean_4 [3] <= 1>>(r_mean_8 [6] + r_mean_8 [7]) ;
+                        for ( int i = 0; i < 4; i++ ) begin
+                            r_mean_4 [i] <= 1>>(r_mean_8 [i] + r_mean_8 [2*i+1]) ; // CHECK YA MOG PROEBATSYA
+                        end
                         r_state_reg <= r_state_next;
             end
             (lpSUM_2):  begin

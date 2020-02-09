@@ -41,4 +41,8 @@ module im_compression #(
     end
 
 
+
+    assign = ( ( a + b ) + ( c + d ) ) + ( ( e + f ) + ( g + h ) );
+
+
 endmodule

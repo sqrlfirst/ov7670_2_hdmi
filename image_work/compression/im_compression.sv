@@ -32,8 +32,12 @@ module im_compression #(
     localparam  lpOUT_BYTES_NUM    = pOUT_IM_HEIGHT * pOUT_IM_WIDTH;
     localparam  lpC2_OUT_BYTES_NUM = $clog2(lpOUT_BYTES_NUM)       ;
 
-     localparam lpWAIT = 3'b000,                                // 
-                lpREAD = 3'b001,
+    enum logic [2:0] { lpWAIT , lpREAD  ,
+                       lpSUM_8, lpSUM_4 ,
+                       lpSUM_2, lpFINISH } state, state_next ;  
+
+     localparam lpWAIT  = 3'b000,                                // 
+                lpREAD  = 3'b001,
                 lpSUM_8 = 3'b010,
                 lpSUM_4  = 3'b011,
                 lpSUM_2 = 3'b100,

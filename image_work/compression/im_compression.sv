@@ -4,8 +4,7 @@ module im_compression #(
     parameter pOUT_IM_WIDTH  = 160,
     parameter pOUT_IM_HEIGHT = 120,
     paremeter pAREA_WIDTH    = 4,
-    paremeter pAREA_HEIGHT   = 4,    
-
+    paremeter pAREA_HEIGHT   = 4,  
     parameter pIN_DATA_W  = 24,
     parameter pOUT_DATA_W = 24,
 )(
@@ -21,8 +20,8 @@ module im_compression #(
     output                              omem_wr_en,
     // comtrol module
     input [lpC2_IN_BYTES_NUM-1:0]       idata_start_ptr,              
-    input                               istart_work,
-    output reg                          omodule_work_f,                             // from lpREAD to lpFINISH;          
+    input                               i_work_enable,                              // 1 clock                                
+    output reg                          omodule_work_f,                             // Goes up in the beginning and goes down when picture was fully processed          
     output reg                          omodule_done_f,                             // 1 clock
 
 );
@@ -31,6 +30,8 @@ module im_compression #(
     localparam  lpC2_IN_BYTES_NUM = $clog2(lpIN_BYTES_NUM)         ;
     localparam  lpOUT_BYTES_NUM    = pOUT_IM_HEIGHT * pOUT_IM_WIDTH;
     localparam  lpC2_OUT_BYTES_NUM = $clog2(lpOUT_BYTES_NUM)       ;
+    localparam  lpNEXT_STAGE       = pAREA_WIDTH * pIN_IM_WIDTH    ;
+    localparam  lpLAST_ROW         = (pAREA_WIDTH-1)*pIN_IM_WIDTH  ;
 
      localparam lpWAIT = 3'b000,                                // 
                 lpREAD = 3'b001,
@@ -44,7 +45,8 @@ module im_compression #(
 
     logic [4][4][pIN_DATA_W-1:0]        r_mem_work;
     logic [lpC2_IN_BYTES_NUM-1:0]       r_addr_read;
-    logic [lpC2_IN_BYTES_NUM-1:0]       r_last_row;             
+    logic [lpC2_IN_BYTES_NUM-1:0]       r_next_stage = pNEXT_STAGE;
+    logic                               r_first_area = 1'b1;            
 
     logic [1:0]                         r_mem_i = 2'b00;
     logic [1:0]                         r_mem_j = 2'b00;
@@ -68,36 +70,40 @@ module im_compression #(
         case (r_state_reg) begin
             (lpWAIT):   begin
                         omodule_done_f <= 1'b0;
-                        if (istart_work == 1'b1) begin
+                        if (i_work_enable == 1'b1) begin
                                 r_state_reg <= r_state_next;
                                 omodule_work_f <= 1'b1;
-                                r_addr_read <= idata_start_ptr;
+                                if (r_first_area == 1'b1) begin
+                                    r_addr_read <= idata_start_ptr;
+                                    r_first_area <= 1'b0;  
+                                end         
                         end
                         end
             (lpREAD):   begin
                             case (r_mem_i) begin
                                 (2'b00): begin case (r_mem_j) begin
                                             (2'b00): begin 
+                                                // Not sure about if (i_work_enable == 1'b1) ....
                                                         r_mem_work [0] [0] <= idata_rd;
                                                         r_mem_j <= r_mem_j + 1'b1;
                                                         r_addr_read <= r_addr_read + 1'b1;
                                                     end
                                             (2'b01):  begin
-                                                        if (istart_work == 1'b1) begin
+                                                        if (i_work_enable == 1'b1) begin
                                                             r_mem_work [0] [1] <= idata_rd;
                                                             r_mem_j <= r_mem_j + 1'b1;
                                                             r_addr_read <= r_addr_read + 1'b1;
                                                         end
                                                     end
                                             (2'b10):  begin
-                                                        if (istart_work == 1'b1) begin
+                                                        if (i_work_enable == 1'b1) begin
                                                             r_mem_work [0] [2] <= idata_rd;
                                                             r_mem_j <= r_mem_j + 1'b1;
                                                             r_addr_read <= r_addr_read + 1'b1;
                                                         end
                                                     end
                                             (2'b11):  begin
-                                                        if (istart_work == 1'b1) begin
+                                                        if (i_work_enable == 1'b1) begin
                                                             r_mem_work [0] [3] <= idata_rd;
                                                             r_mem_j <= r_mem_j + 1'b1;
                                                             r_mem_i <= r_mem_i + 1'b1;
@@ -105,94 +111,132 @@ module im_compression #(
                                                         end
                                                     end
                                         end
+                                endcase
                                 end
                                 (2'b01): begin case (r_mem_j) begin
-                                            (2'b00): begin 
-                                                        r_mem_work [1] [0] <= idata_rd;
-                                                        r_mem_j <= r_mem_j + 1'b1;
-                                                        r_addr_read <= r_addr_read + 1'b1;
+                                            (2'b00): begin
+                                                        if (i_work_enable == 1'b1) begin 
+                                                            r_mem_work [1] [0] <= idata_rd;
+                                                            r_mem_j <= r_mem_j + 1'b1;
+                                                            r_addr_read <= r_addr_read + 1'b1;
+                                                        end
                                                     end
                                             (2'b01):  begin
-                                                        r_mem_work [1] [1] <= idata_rd;
-                                                        r_mem_j <= r_mem_j + 1'b1;
-                                                        r_addr_read <= r_addr_read + 1'b1;
+                                                        if (i_work_enable == 1'b1) begin
+                                                            r_mem_work [1] [1] <= idata_rd;
+                                                            r_mem_j <= r_mem_j + 1'b1;
+                                                            r_addr_read <= r_addr_read + 1'b1;
+                                                        end
                                                     end
                                             (2'b10):  begin
-                                                        r_mem_work [1] [2] <= idata_rd;
-                                                        r_mem_j <= r_mem_j + 1'b1;
-                                                        r_addr_read <= r_addr_read + 1'b1;
+                                                        if (i_work_enable == 1'b1) begin
+                                                            r_mem_work [1] [2] <= idata_rd;
+                                                            r_mem_j <= r_mem_j + 1'b1;
+                                                            r_addr_read <= r_addr_read + 1'b1;
+                                                        end
                                                     end
                                             (2'b11):  begin
-                                                        r_mem_work [1] [3] <= idata_rd;
-                                                        r_mem_j <= r_mem_j + 1'b1;
-                                                        r_mem_i <= r_mem_i + 1'b1;
-                                                        r_addr_read <= r_addr_read + (pIN_IM_WIDTH - (pAREA_WIDTH-1));
+                                                        if (i_work_enable == 1'b1) begin
+                                                            r_mem_work [1] [3] <= idata_rd;
+                                                            r_mem_j <= r_mem_j + 1'b1;
+                                                            r_mem_i <= r_mem_i + 1'b1;
+                                                            r_addr_read <= r_addr_read + (pIN_IM_WIDTH - (pAREA_WIDTH-1));
+                                                        end
                                                     end
                                         end
+                                endcase
                                 end
                                 (2'b10): begin case (r_mem_j) begin
-                                            (2'b00): begin 
-                                                        r_mem_work [2] [0] <= idata_rd;
-                                                        r_mem_j <= r_mem_j + 1'b1;
-                                                        r_addr_read <= r_addr_read + 1'b1;
+                                            (2'b00): begin
+                                                        if (i_work_enable == 1'b1) begin  
+                                                            r_mem_work [2] [0] <= idata_rd;
+                                                            r_mem_j <= r_mem_j + 1'b1;
+                                                            r_addr_read <= r_addr_read + 1'b1;
+                                                        end
                                                     end
                                             (2'b01):  begin
-                                                        r_mem_work [2] [1] <= idata_rd;
-                                                        r_mem_j <= r_mem_j + 1'b1;
-                                                        r_addr_read <= r_addr_read + 1'b1;
+                                                        if (i_work_enable == 1'b1) begin
+                                                            r_mem_work [2] [1] <= idata_rd;
+                                                            r_mem_j <= r_mem_j + 1'b1;
+                                                            r_addr_read <= r_addr_read + 1'b1;
+                                                        end
                                                     end
                                             (2'b10):  begin
-                                                        r_mem_work [2] [2] <= idata_rd;
-                                                        r_mem_j <= r_mem_j + 1'b1;
-                                                        r_addr_read <= r_addr_read + 1'b1;
+                                                        if (i_work_enable == 1'b1) begin
+                                                            r_mem_work [2] [2] <= idata_rd;
+                                                            r_mem_j <= r_mem_j + 1'b1;
+                                                            r_addr_read <= r_addr_read + 1'b1;
+                                                        end
                                                     end
                                             (2'b11):  begin
-                                                        r_mem_work [2] [3] <= idata_rd;
-                                                        r_mem_j <= r_mem_j + 1'b1;
-                                                        r_mem_i <= r_mem_i + 1'b1;
-                                                        r_addr_read <= r_addr_read + (pIN_IM_WIDTH - (pAREA_WIDTH-1));
+                                                        if (i_work_enable == 1'b1) begin
+                                                            r_mem_work [2] [3] <= idata_rd;
+                                                            r_mem_j <= r_mem_j + 1'b1;
+                                                            r_mem_i <= r_mem_i + 1'b1;
+                                                            r_addr_read <= r_addr_read + (pIN_IM_WIDTH - (pAREA_WIDTH-1));
+                                                        end
                                                     end
                                         end
+                                endcase
                                 end
                                 (2'b11): begin case (r_mem_j) begin
-                                            (2'b00): begin 
-                                                        r_mem_work [3] [0] <= idata_rd;
-                                                        r_mem_j <= r_mem_j + 1'b1;
-                                                        r_addr_read <= r_addr_read + 1'b1;
-                                                        r_last_row <= r_addr_read;
+                                            (2'b00): begin
+                                                        if (i_work_enable == 1'b1) begin 
+                                                            r_mem_work [3] [0] <= idata_rd;
+                                                            r_mem_j <= r_mem_j + 1'b1;
+                                                            r_addr_read <= r_addr_read + 1'b1;
+                                                        end
                                                     end
                                             (2'b01):  begin
-                                                        r_mem_work [3] [1] <= idata_rd;
-                                                        r_mem_j <= r_mem_j + 1'b1;
-                                                        r_addr_read <= r_addr_read + 1'b1;
+                                                        if (i_work_enable == 1'b1) begin
+                                                            r_mem_work [3] [1] <= idata_rd;
+                                                            r_mem_j <= r_mem_j + 1'b1;
+                                                            r_addr_read <= r_addr_read + 1'b1;
+                                                        end
                                                     end
                                             (2'b10):  begin
-                                                        r_mem_work [3] [2] <= idata_rd;
-                                                        r_mem_j <= r_mem_j + 1'b1;
-                                                        r_addr_read <= r_addr_read + 1'b1;
+                                                        if (i_work_enable == 1'b1) begin
+                                                            r_mem_work [3] [2] <= idata_rd;
+                                                            r_mem_j <= r_mem_j + 1'b1;
+                                                            r_addr_read <= r_addr_read + 1'b1;
+                                                        end
                                                     end
                                             (2'b11):  begin
-                                                        r_mem_work [3] [3] <= idata_rd;
-                                                        r_mem_j <= r_mem_j + 1'b1;
-                                                        r_mem_i <= r_mem_i + 1'b1;
-                                                        r_addr_read <= (r_addr_read - r_last_row) + 1'b1;
-                                                        r_state_reg <= r_state_next;
+                                                        if (i_work_enable == 1'b1) begin
+                                                            r_mem_work [3] [3] <= idata_rd;
+                                                            r_mem_j <= r_mem_j + 1'b1;
+                                                            r_mem_i <= r_mem_i + 1'b1;
+                                                            r_state_reg <= r_state_next;
+                                                            if (r_addr_read== (r_next_stage-1'b1)) begin
+                                                                r_addr_read <= r_next_stage;
+                                                                r_next_stage <= r_next_stage + pNEXT_STAGE;
+                                                            end
+                                                            else r_addr_read <= (r_addr_read - lpLAST_ROW) + 1'b1;
+                                                            if (r_addr_read == (lpIN_BYTES_NUM-1)) begin
+                                                                r_first_area <= 1'b1;
+                                                                r_next_stage <= lpNEXT_STAGE;
+                                                            end
                                                     end
                                         end
+                                endcase
                                 end
                             end
+                            endcase
                         end
             (lpSUM_8): begin
-                        for ( int i = 0; i < 8; i++ ) begin
-                            for ( int j = 0; j < 4; j+2 ) begin
-                                r_mean_8 [i] <= 1>>(r_mem_work [i] [j] + r_mem_work [i] [j+1]);   // CHECK YA MOG PROEBATSYA
-                            end
-                        end
+                        r_mean_8 [0] <= 1>>(r_mem_work [0] [0] + r_mem_work [0] [1]) ; // FOR was deleted
+                        r_mean_8 [1] <= 1>>(r_mem_work [0] [2] + r_mem_work [0] [3]) ;
+                        r_mean_8 [2] <= 1>>(r_mem_work [1] [0] + r_mem_work [1] [1]) ;
+                        r_mean_8 [3] <= 1>>(r_mem_work [1] [2] + r_mem_work [1] [3]) ;
+                        r_mean_8 [4] <= 1>>(r_mem_work [2] [0] + r_mem_work [2] [1]) ;
+                        r_mean_8 [5] <= 1>>(r_mem_work [2] [2] + r_mem_work [2] [3]) ;
+                        r_mean_8 [6] <= 1>>(r_mem_work [3] [0] + r_mem_work [3] [1]) ;
+                        r_mean_8 [7] <= 1>>(r_mem_work [3] [2] + r_mem_work [3] [3]) ;
                         r_state_reg <= r_state_next;
             end
             (lpSUM_4): begin
                         for ( int i = 0; i < 4; i++ ) begin
-                            r_mean_4 [i] <= 1>>(r_mean_8 [i] + r_mean_8 [2*i+1]) ; // CHECK YA MOG PROEBATSYA
+                            r_mean_4 [i] <= 1>>(r_mean_8 [2*i] + r_mean_8 [2*i+1]) ; // it was CHECKed
                         end
                         r_state_reg <= r_state_next;
             end
@@ -204,17 +248,16 @@ module im_compression #(
             (lpFINISH): begin
                         odata_wr <= 1>>(r_mean_2 [0] + r_mean_2 [1]);
                         r_state_reg <= r_state_next;
-                        omodule_work_f <= 1'b0;
                         omodule_done_f <= 1'b1; 
+                        if (r_first_area == 1'b1)
+                            omodule_work_f <= 1'b0;
             end
         end
     end
 
     assign oaddr_rd = r_addr_read;
 
-
-
-    assign = ( ( a + b ) + ( c + d ) ) + ( ( e + f ) + ( g + h ) );
+    //assign = ( ( a + b ) + ( c + d ) ) + ( ( e + f ) + ( g + h ) );
 
 
 endmodule

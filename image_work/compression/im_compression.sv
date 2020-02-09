@@ -3,6 +3,8 @@ module im_compression #(
     parameter pIN_IM_HEIGHT  = 480,
     parameter pOUT_IM_WIDTH  = 160,
     parameter pOUT_IM_HEIGHT = 120,
+    paremeter pAREA_WIDTH    = 4,
+    paremeter pAREA_HEIGHT   = 4,    
 
     parameter pIN_DATA_W  = 24,
     parameter pOUT_DATA_W = 24,
@@ -18,7 +20,7 @@ module im_compression #(
     output [lpC2_OUT_BYTES_NUM-1:0]     oaddr_wr,
     output                              omem_wr_en,
     // comtrol module
-    input [pIN_DATA_W-1:0]              idata_start_ptr,              
+    input [lpC2_IN_BYTES_NUM-1:0]       idata_start_ptr,              
     input                               istart_work,
     output reg                          omodule_work_f,                             // from lpREAD to lpFINISH;          
     output reg                          omodule_done_f,                             // 1 clock
@@ -41,8 +43,8 @@ module im_compression #(
     logic [2:0]       					r_state_next = lpREAD;
 
     logic [4][4][pIN_DATA_W-1:0]        r_mem_work;
-    logic [pIN_DATA_W-1:0]              r_start_pointer;
-    logic [pIN_DATA_W-1:0]              r_addr_read;
+    logic [lpC2_IN_BYTES_NUM-1:0]       r_addr_read;
+    logic [lpC2_IN_BYTES_NUM-1:0]       r_last_row;             
 
     logic [1:0]                         r_mem_i = 2'b00;
     logic [1:0]                         r_mem_j = 2'b00;
@@ -69,7 +71,7 @@ module im_compression #(
                         if (istart_work == 1'b1) begin
                                 r_state_reg <= r_state_next;
                                 omodule_work_f <= 1'b1;
-                                r_start_pointer <= idata_start_ptr;
+                                r_addr_read <= idata_start_ptr;
                         end
                         end
             (lpREAD):   begin
@@ -78,7 +80,7 @@ module im_compression #(
                                             (2'b00): begin 
                                                         r_mem_work [0] [0] <= idata_rd;
                                                         r_mem_j <= r_mem_j + 1'b1;
-                                                        r_addr_read <= r_start_pointer + 1'b1;
+                                                        r_addr_read <= r_addr_read + 1'b1;
                                                     end
                                             (2'b01):  begin
                                                         if (istart_work == 1'b1) begin
@@ -99,7 +101,7 @@ module im_compression #(
                                                             r_mem_work [0] [3] <= idata_rd;
                                                             r_mem_j <= r_mem_j + 1'b1;
                                                             r_mem_i <= r_mem_i + 1'b1;
-                                                            //r_addr_read <= r_addr_read + 1'b1;
+                                                            r_addr_read <= r_addr_read + (pIN_IM_WIDTH - (pAREA_WIDTH-1));
                                                         end
                                                     end
                                         end
@@ -108,19 +110,23 @@ module im_compression #(
                                             (2'b00): begin 
                                                         r_mem_work [1] [0] <= idata_rd;
                                                         r_mem_j <= r_mem_j + 1'b1;
+                                                        r_addr_read <= r_addr_read + 1'b1;
                                                     end
                                             (2'b01):  begin
                                                         r_mem_work [1] [1] <= idata_rd;
                                                         r_mem_j <= r_mem_j + 1'b1;
+                                                        r_addr_read <= r_addr_read + 1'b1;
                                                     end
                                             (2'b10):  begin
                                                         r_mem_work [1] [2] <= idata_rd;
                                                         r_mem_j <= r_mem_j + 1'b1;
+                                                        r_addr_read <= r_addr_read + 1'b1;
                                                     end
                                             (2'b11):  begin
                                                         r_mem_work [1] [3] <= idata_rd;
                                                         r_mem_j <= r_mem_j + 1'b1;
                                                         r_mem_i <= r_mem_i + 1'b1;
+                                                        r_addr_read <= r_addr_read + (pIN_IM_WIDTH - (pAREA_WIDTH-1));
                                                     end
                                         end
                                 end
@@ -128,19 +134,23 @@ module im_compression #(
                                             (2'b00): begin 
                                                         r_mem_work [2] [0] <= idata_rd;
                                                         r_mem_j <= r_mem_j + 1'b1;
+                                                        r_addr_read <= r_addr_read + 1'b1;
                                                     end
                                             (2'b01):  begin
                                                         r_mem_work [2] [1] <= idata_rd;
                                                         r_mem_j <= r_mem_j + 1'b1;
+                                                        r_addr_read <= r_addr_read + 1'b1;
                                                     end
                                             (2'b10):  begin
                                                         r_mem_work [2] [2] <= idata_rd;
                                                         r_mem_j <= r_mem_j + 1'b1;
+                                                        r_addr_read <= r_addr_read + 1'b1;
                                                     end
                                             (2'b11):  begin
                                                         r_mem_work [2] [3] <= idata_rd;
                                                         r_mem_j <= r_mem_j + 1'b1;
                                                         r_mem_i <= r_mem_i + 1'b1;
+                                                        r_addr_read <= r_addr_read + (pIN_IM_WIDTH - (pAREA_WIDTH-1));
                                                     end
                                         end
                                 end
@@ -148,19 +158,24 @@ module im_compression #(
                                             (2'b00): begin 
                                                         r_mem_work [3] [0] <= idata_rd;
                                                         r_mem_j <= r_mem_j + 1'b1;
+                                                        r_addr_read <= r_addr_read + 1'b1;
+                                                        r_last_row <= r_addr_read;
                                                     end
                                             (2'b01):  begin
                                                         r_mem_work [3] [1] <= idata_rd;
                                                         r_mem_j <= r_mem_j + 1'b1;
+                                                        r_addr_read <= r_addr_read + 1'b1;
                                                     end
                                             (2'b10):  begin
                                                         r_mem_work [3] [2] <= idata_rd;
                                                         r_mem_j <= r_mem_j + 1'b1;
+                                                        r_addr_read <= r_addr_read + 1'b1;
                                                     end
                                             (2'b11):  begin
                                                         r_mem_work [3] [3] <= idata_rd;
                                                         r_mem_j <= r_mem_j + 1'b1;
                                                         r_mem_i <= r_mem_i + 1'b1;
+                                                        r_addr_read <= (r_addr_read - r_last_row) + 1'b1;
                                                         r_state_reg <= r_state_next;
                                                     end
                                         end
